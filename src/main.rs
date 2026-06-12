@@ -8,6 +8,7 @@ mod ui;
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use adw::prelude::*;
 use gtk::{gio, glib};
@@ -18,6 +19,9 @@ use timer::{Phase, Tick, Timer};
 use ui::window::MainView;
 
 const APP_ID: &str = "io.github.vlucas14sp.BlueTime";
+
+/// Set by `--hidden`: start in the background (indicator only).
+static START_HIDDEN: AtomicBool = AtomicBool::new(false);
 
 struct App {
     gtk_app: adw::Application,
@@ -219,6 +223,21 @@ fn build_app(gtk_app: &adw::Application) -> Rc<RefCell<App>> {
 fn main() -> glib::ExitCode {
     let gtk_app = adw::Application::builder().application_id(APP_ID).build();
 
+    gtk_app.add_main_option(
+        "hidden",
+        glib::Char::from(0),
+        glib::OptionFlags::NONE,
+        glib::OptionArg::None,
+        "Start in the background (indicator only)",
+        None,
+    );
+    gtk_app.connect_handle_local_options(|_, options| {
+        if options.contains("hidden") {
+            START_HIDDEN.store(true, Ordering::Relaxed);
+        }
+        std::ops::ControlFlow::Continue(()) // continue normal startup
+    });
+
     gtk_app.connect_startup(|_| ui::window::load_css());
 
     let state: Rc<RefCell<Option<Rc<RefCell<App>>>>> = Rc::new(RefCell::new(None));
@@ -228,7 +247,9 @@ fn main() -> glib::ExitCode {
             Some(app) => app.borrow().view.present(),
             None => {
                 let app = build_app(gtk_app);
-                app.borrow().view.present();
+                if !START_HIDDEN.swap(false, Ordering::Relaxed) {
+                    app.borrow().view.present();
+                }
                 *state = Some(app);
             }
         }
