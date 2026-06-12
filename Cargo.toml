@@ -1,0 +1,9 @@
+[package]
+name = "blue-time"
+version = "0.1.0"
+edition = "2024"
+description = "A simple Pomodoro timer for GNOME"
+license = "MIT"
+repository = "https://github.com/vlucas14sp/blue-time"
+
+[dependencies]
