@@ -12,7 +12,7 @@ use adw::prelude::*;
 use gtk::{gio, glib};
 
 use config::Config;
-use timer::{Tick, Timer};
+use timer::{Phase, Tick, Timer};
 use ui::window::MainView;
 
 const APP_ID: &str = "io.github.vlucas14sp.BlueTime";
@@ -23,6 +23,8 @@ struct App {
     timer: Timer,
     config: Rc<RefCell<Config>>,
     tray: ksni::blocking::Handle<tray::Indicator>,
+    /// Keeps the sound alive while it plays.
+    sound: Option<gtk::MediaFile>,
     /// Keeps the application alive while the window is hidden.
     _hold: gio::ApplicationHoldGuard,
 }
@@ -46,10 +48,54 @@ impl App {
     }
 
     fn on_tick(&mut self) {
-        if let Tick::Finished(_finished) = self.timer.tick() {
-            // Notifications, sound and auto-start will hook in here.
+        if let Tick::Finished(finished) = self.timer.tick() {
+            self.on_phase_finished(finished);
         }
         self.refresh();
+    }
+
+    fn on_phase_finished(&mut self, finished: Phase) {
+        let config = self.config.borrow().clone();
+
+        let next = self.timer.phase();
+        let next_minutes = self.timer.remaining() / 60;
+        let (title, body) = match finished {
+            Phase::Focus => (
+                "Focus session complete",
+                format!(
+                    "Time for a {} ({next_minutes} min)",
+                    next.label().to_lowercase()
+                ),
+            ),
+            _ => (
+                "Break is over",
+                format!("Time to focus ({next_minutes} min)"),
+            ),
+        };
+        ui::window::notify(&self.gtk_app, title, &body);
+
+        if config.play_sound {
+            self.play_sound();
+        }
+
+        let auto = match finished {
+            Phase::Focus => config.auto_start_breaks,
+            _ => config.auto_start_focus,
+        };
+        if auto {
+            self.timer.start();
+        }
+    }
+
+    fn play_sound(&mut self) {
+        const SOUND: &str = "/usr/share/sounds/freedesktop/stereo/complete.oga";
+        if std::path::Path::new(SOUND).exists() {
+            let media = gtk::MediaFile::for_filename(SOUND);
+            media.play();
+            self.sound = Some(media);
+        } else if let Some(display) = gtk::gdk::Display::default() {
+            display.beep();
+        }
     }
 }
 
@@ -69,6 +115,7 @@ fn build_app(gtk_app: &adw::Application) -> Rc<RefCell<App>> {
         timer,
         config,
         tray,
+        sound: None,
         _hold: gtk_app.hold(),
     }));
 

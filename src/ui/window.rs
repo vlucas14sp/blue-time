@@ -204,6 +204,14 @@ impl MainView {
     }
 }
 
+/// Send a notification through the application, used when a session ends.
+pub fn notify(app: &adw::Application, title: &str, body: &str) {
+    let notification = gio::Notification::new(title);
+    notification.set_body(Some(body));
+    notification.set_priority(gio::NotificationPriority::High);
+    app.send_notification(Some("session-end"), &notification);
+}
+
 pub fn show_about(parent: &adw::ApplicationWindow) {
     let about = adw::AboutDialog::builder()
         .application_name("Blue Time")
