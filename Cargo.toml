@@ -10,6 +10,7 @@ repository = "https://github.com/vlucas14sp/blue-time"
 adw = { version = "0.9.1", package = "libadwaita", features = ["v1_5"] }
 async-channel = "2.5.0"
 directories = "6.0.0"
+gettext-rs = "0.7.7"
 gtk = { version = "0.11.3", package = "gtk4", features = ["v4_14"] }
 ksni = { version = "0.3.5", features = ["blocking"] }
 serde = { version = "1.0.228", features = ["derive"] }

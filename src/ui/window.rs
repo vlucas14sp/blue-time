@@ -2,6 +2,7 @@
 //! transport controls.
 
 use adw::prelude::*;
+use gettextrs::gettext;
 use gtk::gio;
 
 use crate::timer::{Phase, State, Timer};
@@ -57,7 +58,7 @@ pub struct MainView {
 impl MainView {
     pub fn new(app: &adw::Application) -> Self {
         let phase_label = gtk::Label::builder()
-            .label(Phase::Focus.label())
+            .label(gettext(Phase::Focus.label()))
             .css_classes(["phase-pill", "phase-focus"])
             .halign(gtk::Align::Center)
             .build();
@@ -77,20 +78,20 @@ impl MainView {
             .icon_name("view-refresh-symbolic")
             .css_classes(["circular"])
             .valign(gtk::Align::Center)
-            .tooltip_text("Reset")
+            .tooltip_text(gettext("Reset"))
             .build();
 
         let toggle_button = gtk::Button::builder()
             .icon_name("media-playback-start-symbolic")
             .css_classes(["circular", "suggested-action", "big-circular"])
-            .tooltip_text("Start")
+            .tooltip_text(gettext("Start"))
             .build();
 
         let skip_button = gtk::Button::builder()
             .icon_name("media-skip-forward-symbolic")
             .css_classes(["circular"])
             .valign(gtk::Align::Center)
-            .tooltip_text("Skip")
+            .tooltip_text(gettext("Skip"))
             .build();
 
         let controls = gtk::Box::builder()
@@ -118,10 +119,10 @@ impl MainView {
         content.append(&controls);
 
         let menu = gio::Menu::new();
-        menu.append(Some("_Statistics"), Some("app.stats"));
-        menu.append(Some("_Preferences"), Some("app.preferences"));
-        menu.append(Some("_About Blue Time"), Some("app.about"));
-        menu.append(Some("_Quit"), Some("app.quit"));
+        menu.append(Some(&gettext("_Statistics")), Some("app.stats"));
+        menu.append(Some(&gettext("_Preferences")), Some("app.preferences"));
+        menu.append(Some(&gettext("_About Blue Time")), Some("app.about"));
+        menu.append(Some(&gettext("_Quit")), Some("app.quit"));
 
         let menu_button = gtk::MenuButton::builder()
             .icon_name("open-menu-symbolic")
@@ -163,7 +164,7 @@ impl MainView {
             .set_label(&format!("{:02}:{:02}", remaining / 60, remaining % 60));
 
         let phase = timer.phase();
-        self.phase_label.set_label(phase.label());
+        self.phase_label.set_label(&gettext(phase.label()));
         let phase_class = match phase {
             Phase::Focus => "phase-focus",
             Phase::ShortBreak => "phase-break",
@@ -173,12 +174,12 @@ impl MainView {
             .set_css_classes(&["phase-pill", phase_class]);
 
         let (icon, tip) = match timer.state() {
-            State::Running => ("media-playback-pause-symbolic", "Pause"),
-            State::Paused => ("media-playback-start-symbolic", "Resume"),
-            State::Idle => ("media-playback-start-symbolic", "Start"),
+            State::Running => ("media-playback-pause-symbolic", gettext("Pause")),
+            State::Paused => ("media-playback-start-symbolic", gettext("Resume")),
+            State::Idle => ("media-playback-start-symbolic", gettext("Start")),
         };
         self.toggle_button.set_icon_name(icon);
-        self.toggle_button.set_tooltip_text(Some(tip));
+        self.toggle_button.set_tooltip_text(Some(&tip));
 
         self.refresh_dots(timer);
     }

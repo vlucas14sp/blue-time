@@ -1,6 +1,7 @@
 //! Statistics dialog: today's totals and a 7-day history.
 
 use adw::prelude::*;
+use gettextrs::{gettext, ngettext};
 use gtk::glib;
 
 use crate::stats::Stats;
@@ -15,9 +16,13 @@ pub fn present(parent: &adw::ApplicationWindow, stats: &Stats) {
         .build();
     let subtitle = gtk::Label::builder()
         .label(format!(
-            "pomodoro{} completed today — {} of focus",
-            if today == 1 { "" } else { "s" },
-            format_duration(focus_secs)
+            "{} — {}",
+            ngettext(
+                "pomodoro completed today",
+                "pomodoros completed today",
+                today as u32
+            ),
+            gettext("%s of focus").replace("%s", &format_duration(focus_secs))
         ))
         .css_classes(["dim-label"])
         .build();
@@ -55,7 +60,7 @@ pub fn present(parent: &adw::ApplicationWindow, stats: &Stats) {
     toolbar_view.set_content(Some(&content));
 
     let dialog = adw::Dialog::builder()
-        .title("Statistics")
+        .title(gettext("Statistics"))
         .content_width(340)
         .child(&toolbar_view)
         .build();

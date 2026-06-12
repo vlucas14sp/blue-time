@@ -11,6 +11,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use adw::prelude::*;
+use gettextrs::gettext;
 use gtk::{gio, glib};
 
 use config::Config;
@@ -19,6 +20,7 @@ use timer::{Phase, Tick, Timer};
 use ui::window::MainView;
 
 const APP_ID: &str = "io.github.vlucas14sp.BlueTime";
+const GETTEXT_DOMAIN: &str = "blue-time";
 
 /// Set by `--hidden`: start in the background (indicator only).
 static START_HIDDEN: AtomicBool = AtomicBool::new(false);
@@ -71,18 +73,17 @@ impl App {
         let next_minutes = self.timer.remaining() / 60;
         let (title, body) = match finished {
             Phase::Focus => (
-                "Focus session complete",
-                format!(
-                    "Time for a {} ({next_minutes} min)",
-                    next.label().to_lowercase()
-                ),
+                gettext("Focus session complete"),
+                gettext("Time for a %s (%d min)")
+                    .replace("%s", &gettext(next.label()).to_lowercase())
+                    .replace("%d", &next_minutes.to_string()),
             ),
             _ => (
-                "Break is over",
-                format!("Time to focus ({next_minutes} min)"),
+                gettext("Break is over"),
+                gettext("Time to focus (%d min)").replace("%d", &next_minutes.to_string()),
             ),
         };
-        ui::window::notify(&self.gtk_app, title, &body);
+        ui::window::notify(&self.gtk_app, &title, &body);
 
         if config.play_sound {
             self.play_sound();
@@ -220,7 +221,24 @@ fn build_app(gtk_app: &adw::Application) -> Rc<RefCell<App>> {
     app
 }
 
+/// Initialize gettext, looking for catalogs relative to the installed
+/// binary (`<prefix>/share/locale`) with a system-wide fallback.
+fn init_i18n() {
+    use gettextrs::{LocaleCategory, bind_textdomain_codeset, bindtextdomain, setlocale, textdomain};
+
+    setlocale(LocaleCategory::LcAll, "");
+    let localedir = std::env::current_exe()
+        .ok()
+        .and_then(|exe| Some(exe.parent()?.parent()?.join("share/locale")))
+        .filter(|dir| dir.is_dir())
+        .unwrap_or_else(|| "/usr/share/locale".into());
+    let _ = bindtextdomain(GETTEXT_DOMAIN, localedir);
+    let _ = bind_textdomain_codeset(GETTEXT_DOMAIN, "UTF-8");
+    let _ = textdomain(GETTEXT_DOMAIN);
+}
+
 fn main() -> glib::ExitCode {
+    init_i18n();
     let gtk_app = adw::Application::builder().application_id(APP_ID).build();
 
     gtk_app.add_main_option(
@@ -228,7 +246,7 @@ fn main() -> glib::ExitCode {
         glib::Char::from(0),
         glib::OptionFlags::NONE,
         glib::OptionArg::None,
-        "Start in the background (indicator only)",
+        &gettext("Start in the background (indicator only)"),
         None,
     );
     gtk_app.connect_handle_local_options(|_, options| {

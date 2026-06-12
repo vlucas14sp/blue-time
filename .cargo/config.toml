@@ -1,0 +1,4 @@
+# gettext is part of glibc on Linux; link the system one instead of
+# building the bundled copy (which needs autotools).
+[env]
+GETTEXT_SYSTEM = "1"

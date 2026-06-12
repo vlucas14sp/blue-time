@@ -3,6 +3,8 @@
 //! The tray service runs on its own thread; menu actions are forwarded to
 //! the GTK main loop through an async channel.
 
+use gettextrs::gettext;
+
 use crate::timer::{Phase, State, Timer};
 
 #[derive(Debug, Clone, Copy)]
@@ -47,12 +49,12 @@ pub fn status_text(timer: &Timer) -> String {
     let remaining = timer.remaining();
     let text = format!(
         "{} — {:02}:{:02}",
-        timer.phase().label(),
+        gettext(timer.phase().label()),
         remaining / 60,
         remaining % 60
     );
     match timer.state() {
-        State::Paused => format!("{text} (paused)"),
+        State::Paused => format!("{text} ({})", gettext("paused")),
         State::Idle if timer.phase() == Phase::Focus && timer.cycle_count() == 0 => {
             "Blue Time".into()
         }
@@ -91,9 +93,9 @@ impl ksni::Tray for Indicator {
     fn menu(&self) -> Vec<ksni::MenuItem<Self>> {
         use ksni::menu::*;
         let toggle_label = match self.state {
-            State::Running => "Pause",
-            State::Paused => "Resume",
-            State::Idle => "Start",
+            State::Running => gettext("Pause"),
+            State::Paused => gettext("Resume"),
+            State::Idle => gettext("Start"),
         };
         vec![
             StandardItem {
@@ -104,7 +106,7 @@ impl ksni::Tray for Indicator {
             .into(),
             MenuItem::Separator,
             StandardItem {
-                label: toggle_label.into(),
+                label: toggle_label,
                 icon_name: match self.state {
                     State::Running => "media-playback-pause-symbolic".into(),
                     _ => "media-playback-start-symbolic".into(),
@@ -114,14 +116,14 @@ impl ksni::Tray for Indicator {
             }
             .into(),
             StandardItem {
-                label: "Skip".into(),
+                label: gettext("Skip"),
                 icon_name: "media-skip-forward-symbolic".into(),
                 activate: Box::new(|this: &mut Self| this.send(Command::Skip)),
                 ..Default::default()
             }
             .into(),
             StandardItem {
-                label: "Reset".into(),
+                label: gettext("Reset"),
                 icon_name: "view-refresh-symbolic".into(),
                 activate: Box::new(|this: &mut Self| this.send(Command::Reset)),
                 ..Default::default()
@@ -129,13 +131,13 @@ impl ksni::Tray for Indicator {
             .into(),
             MenuItem::Separator,
             StandardItem {
-                label: "Show Window".into(),
+                label: gettext("Show Window"),
                 activate: Box::new(|this: &mut Self| this.send(Command::ShowWindow)),
                 ..Default::default()
             }
             .into(),
             StandardItem {
-                label: "Quit".into(),
+                label: gettext("Quit"),
                 icon_name: "application-exit-symbolic".into(),
                 activate: Box::new(|this: &mut Self| this.send(Command::Quit)),
                 ..Default::default()

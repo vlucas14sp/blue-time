@@ -27,6 +27,7 @@ pub fn set_enabled(enabled: bool) {
          Type=Application\n\
          Name=Blue Time\n\
          Comment=Pomodoro timer\n\
+         Comment[pt_BR]=Timer pomodoro\n\
          Exec={} --hidden\n\
          Icon=io.github.vlucas14sp.BlueTime\n\
          Terminal=false\n\
