@@ -1,6 +1,8 @@
 mod autostart;
 mod config;
+mod icon;
 mod timer;
+mod tray;
 mod ui;
 
 use std::cell::RefCell;
@@ -16,14 +18,31 @@ use ui::window::MainView;
 const APP_ID: &str = "io.github.vlucas14sp.BlueTime";
 
 struct App {
+    gtk_app: adw::Application,
     view: MainView,
     timer: Timer,
     config: Rc<RefCell<Config>>,
+    tray: ksni::blocking::Handle<tray::Indicator>,
+    /// Keeps the application alive while the window is hidden.
+    _hold: gio::ApplicationHoldGuard,
 }
 
 impl App {
     fn refresh(&mut self) {
         self.view.refresh(&self.timer);
+        let timer = self.timer.clone();
+        self.tray.update(move |indicator| indicator.sync(&timer));
+    }
+
+    fn handle_command(&mut self, command: tray::Command) {
+        match command {
+            tray::Command::Toggle => self.timer.toggle(),
+            tray::Command::Skip => self.timer.skip(),
+            tray::Command::Reset => self.timer.reset(),
+            tray::Command::ShowWindow => self.view.present(),
+            tray::Command::Quit => self.gtk_app.quit(),
+        }
+        self.refresh();
     }
 
     fn on_tick(&mut self) {
@@ -39,11 +58,29 @@ fn build_app(gtk_app: &adw::Application) -> Rc<RefCell<App>> {
     let timer = Timer::new(config.borrow().durations());
     let view = MainView::new(gtk_app);
 
+    let (tx, rx) = async_channel::unbounded();
+    let indicator = tray::Indicator::new(&timer, tx);
+    use ksni::blocking::TrayMethods;
+    let tray = indicator.spawn().expect("spawn tray service");
+
     let app = Rc::new(RefCell::new(App {
+        gtk_app: gtk_app.clone(),
         view,
         timer,
         config,
+        tray,
+        _hold: gtk_app.hold(),
     }));
+
+    // Commands coming from the top bar indicator.
+    {
+        let a = app.clone();
+        glib::spawn_future_local(async move {
+            while let Ok(command) = rx.recv().await {
+                a.borrow_mut().handle_command(command);
+            }
+        });
+    }
 
     // Window controls.
     {
