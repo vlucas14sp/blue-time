@@ -1,6 +1,7 @@
 mod autostart;
 mod config;
 mod icon;
+mod stats;
 mod timer;
 mod tray;
 mod ui;
@@ -12,6 +13,7 @@ use adw::prelude::*;
 use gtk::{gio, glib};
 
 use config::Config;
+use stats::Stats;
 use timer::{Phase, Tick, Timer};
 use ui::window::MainView;
 
@@ -22,6 +24,7 @@ struct App {
     view: MainView,
     timer: Timer,
     config: Rc<RefCell<Config>>,
+    stats: Stats,
     tray: ksni::blocking::Handle<tray::Indicator>,
     /// Keeps the sound alive while it plays.
     sound: Option<gtk::MediaFile>,
@@ -56,6 +59,9 @@ impl App {
 
     fn on_phase_finished(&mut self, finished: Phase) {
         let config = self.config.borrow().clone();
+        if finished == Phase::Focus {
+            self.stats.record_focus(config.durations().focus);
+        }
 
         let next = self.timer.phase();
         let next_minutes = self.timer.remaining() / 60;
@@ -114,6 +120,7 @@ fn build_app(gtk_app: &adw::Application) -> Rc<RefCell<App>> {
         view,
         timer,
         config,
+        stats: Stats::load(),
         tray,
         sound: None,
         _hold: gtk_app.hold(),
@@ -185,6 +192,15 @@ fn build_app(gtk_app: &adw::Application) -> Rc<RefCell<App>> {
             })
             .build()
     };
+    let stats_action = {
+        let a = app.clone();
+        gio::ActionEntry::builder("stats")
+            .activate(move |_, _, _| {
+                let app = a.borrow();
+                ui::stats_dialog::present(&app.view.window, &app.stats);
+            })
+            .build()
+    };
     let about = {
         let a = app.clone();
         gio::ActionEntry::builder("about")
@@ -193,7 +209,7 @@ fn build_app(gtk_app: &adw::Application) -> Rc<RefCell<App>> {
             })
             .build()
     };
-    gtk_app.add_action_entries([quit, preferences, about]);
+    gtk_app.add_action_entries([quit, preferences, stats_action, about]);
     gtk_app.set_accels_for_action("app.quit", &["<primary>q"]);
 
     app.borrow_mut().refresh();
