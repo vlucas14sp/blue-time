@@ -16,9 +16,6 @@ impl Phase {
         }
     }
 
-    pub fn is_break(self) -> bool {
-        !matches!(self, Phase::Focus)
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -122,12 +119,6 @@ impl Timer {
             self.remaining = self.durations.for_phase(self.phase);
         }
         self.state = State::Running;
-    }
-
-    pub fn pause(&mut self) {
-        if self.state == State::Running {
-            self.state = State::Paused;
-        }
     }
 
     /// Start when idle, otherwise flip between running and paused.
@@ -260,7 +251,7 @@ mod tests {
         let mut t = Timer::new(short());
         t.start();
         t.tick();
-        t.pause();
+        t.toggle();
         assert_eq!(t.state(), State::Paused);
         assert_eq!(t.tick(), Tick::Counting);
         assert_eq!(t.remaining(), 2);
