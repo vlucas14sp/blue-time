@@ -35,6 +35,29 @@ sudo dnf install gcc gtk4-devel libadwaita-devel
 cargo build --release
 ```
 
+## Installing
+
+Installs the binary, desktop entry and icon under `~/.local`:
+
+```sh
+make install
+```
+
+To remove it again:
+
+```sh
+make uninstall
+```
+
+## Usage
+
+- The window shows the current session with start/pause, skip and reset.
+- Closing the window keeps the timer running in the top bar indicator;
+  use Quit (menu or indicator) to exit completely.
+- `blue-time --hidden` starts in the background (used by "Start on Login").
+- Preferences let you tune durations, auto-start behavior, sound and
+  autostart on login. Statistics shows today's count and a 7-day history.
+
 ## License
 
 [MIT](LICENSE)

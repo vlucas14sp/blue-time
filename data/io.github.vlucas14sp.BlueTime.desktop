@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Blue Time
+Comment=Pomodoro timer
+Exec=blue-time
+Icon=io.github.vlucas14sp.BlueTime
+Terminal=false
+Categories=Utility;GTK;GNOME;
+Keywords=pomodoro;timer;focus;productivity;
+StartupNotify=true
+X-GNOME-UsesNotifications=true
