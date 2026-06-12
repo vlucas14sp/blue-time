@@ -58,6 +58,13 @@ make uninstall
 - Preferences let you tune durations, auto-start behavior, sound and
   autostart on login. Statistics shows today's count and a 7-day history.
 
+## Translations
+
+The interface follows your system language (gettext). Available languages:
+English (source) and Brazilian Portuguese. To add a language, copy
+`po/blue-time.pot` to `po/<lang>.po`, translate it, and add the language to
+`LINGUAS` in the `Makefile`.
+
 ## License
 
 [MIT](LICENSE)
