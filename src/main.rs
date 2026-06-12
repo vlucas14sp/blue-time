@@ -1,3 +1,4 @@
+mod autostart;
 mod config;
 mod timer;
 mod ui;
@@ -17,6 +18,7 @@ const APP_ID: &str = "io.github.vlucas14sp.BlueTime";
 struct App {
     view: MainView,
     timer: Timer,
+    config: Rc<RefCell<Config>>,
 }
 
 impl App {
@@ -33,11 +35,15 @@ impl App {
 }
 
 fn build_app(gtk_app: &adw::Application) -> Rc<RefCell<App>> {
-    let config = Config::load();
-    let timer = Timer::new(config.durations());
+    let config = Rc::new(RefCell::new(Config::load()));
+    let timer = Timer::new(config.borrow().durations());
     let view = MainView::new(gtk_app);
 
-    let app = Rc::new(RefCell::new(App { view, timer }));
+    let app = Rc::new(RefCell::new(App {
+        view,
+        timer,
+        config,
+    }));
 
     // Window controls.
     {
@@ -74,6 +80,27 @@ fn build_app(gtk_app: &adw::Application) -> Rc<RefCell<App>> {
     let quit = gio::ActionEntry::builder("quit")
         .activate(|gtk_app: &adw::Application, _, _| gtk_app.quit())
         .build();
+    let preferences = {
+        let a = app.clone();
+        gio::ActionEntry::builder("preferences")
+            .activate(move |_, _, _| {
+                let (window, cfg) = {
+                    let app = a.borrow();
+                    (app.view.window.clone(), app.config.clone())
+                };
+                let a = a.clone();
+                ui::prefs::present(
+                    &window,
+                    cfg,
+                    Rc::new(move |config: &Config| {
+                        let mut app = a.borrow_mut();
+                        app.timer.set_durations(config.durations());
+                        app.refresh();
+                    }),
+                );
+            })
+            .build()
+    };
     let about = {
         let a = app.clone();
         gio::ActionEntry::builder("about")
@@ -82,7 +109,7 @@ fn build_app(gtk_app: &adw::Application) -> Rc<RefCell<App>> {
             })
             .build()
     };
-    gtk_app.add_action_entries([quit, about]);
+    gtk_app.add_action_entries([quit, preferences, about]);
     gtk_app.set_accels_for_action("app.quit", &["<primary>q"]);
 
     app.borrow_mut().refresh();
